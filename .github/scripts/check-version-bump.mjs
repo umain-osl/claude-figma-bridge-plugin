@@ -22,7 +22,14 @@ if (!base || !head) {
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
 
 /** Paths that do not reach a user's installed copy. */
-const NOT_SHIPPED = [/^\.github\//, /^tests\//, /^docs\//, /^\.gitignore$/, /^README\.md$/];
+const NOT_SHIPPED = [
+  /^\.github\//,
+  /^\.githooks\//,
+  /^tests\//,
+  /^docs\//,
+  /^\.gitignore$/,
+  /^README\.md$/,
+];
 
 const changed = git('diff', '--name-only', `${base}...${head}`)
   .split('\n')
