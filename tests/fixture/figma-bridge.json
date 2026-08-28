@@ -12,7 +12,8 @@
     "fileKey": "abcdefghijklmnopqrstuv",
     "fileName": "Fixture Library",
     "retiredPagePattern": "graveyard",
-    "designOnly": "report"
+    "designOnly": "report",
+    "ignorePagePattern": "ikoner|icons|cover"
   },
   "paths": {
     "unmapped": "design/figma/unmapped-components.json",

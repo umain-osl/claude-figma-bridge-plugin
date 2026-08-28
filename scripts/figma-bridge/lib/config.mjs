@@ -38,6 +38,13 @@ const configSchema = object({
       fileName: required(str()),
       retiredPagePattern: withDefault(str({ min: 0 }), ''),
       /**
+       * Pages whose components can never have a code counterpart — an icon set
+       * the codebase holds as SVGs, a cover page, documentation. Without this the
+       * design-side report is mostly noise, and a report that is mostly noise is
+       * one nobody reads.
+       */
+      ignorePagePattern: withDefault(str({ min: 0 }), ''),
+      /**
        * What to do about published components with no mapping. `report` prints
        * them and passes: in a library larger than the slice a codebase uses,
        * most components legitimately have no counterpart, and failing on that

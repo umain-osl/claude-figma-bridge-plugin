@@ -67,6 +67,10 @@ What you need to settle:
   exception. Find the palette rather than guessing: it is usually the module the components import
   their colours from. Keep it as short as it can be, and note that a pattern matching nothing makes
   the doctor fail, because a stale exception is a hole nobody looks at.
+- **`figma.ignorePagePattern`** — the pages nothing in code could ever map to. Read the page names
+  out of the cache before deciding: an icon set the repo holds as SVGs, a cover page, a
+  documentation page. Skipping this is the difference between a design-side report someone reads and
+  one that is mostly icons.
 - **`figma.designOnly`** — leave it `report` at onboarding. `audit-design-orphans` will list every
   published component with no code counterpart, which at this stage is most of the library; that
   list is a finding to hand the design owner, not a failure. Switch to `baseline` once the team

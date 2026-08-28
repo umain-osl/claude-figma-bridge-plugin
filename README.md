@@ -254,8 +254,10 @@ counts in a mature library — rank candidates by popularity and you get dead co
 
 **`audit-design-orphans`** — the same question asked backwards: published components no mapping
 points at. Coverage alone is half a guarantee, because it says nothing about a component the library
-publishes that the codebase has quietly reimplemented or never noticed. Retired pages and Figma's
-private (`.`-prefixed) components are excluded. It **reports** by default and passes, because a
+publishes that the codebase has quietly reimplemented or never noticed. Excluded from the count:
+retired pages, Figma's private (`.`-prefixed) components, and any page named by
+`figma.ignorePagePattern` — an icon set the codebase holds as SVGs, a cover page, documentation.
+Name those, or two thirds of the list is noise and nobody reads it. It **reports** by default and passes, because a
 library holds more than any one codebase uses and a check that fails on that gets switched off. Set
 `figma.designOnly` to `"baseline"` and it becomes a ratchet: whatever is unmapped today is accepted
 once, in writing, and anything new must be mapped or accepted deliberately.
@@ -266,7 +268,9 @@ the easiest one to cross: a hardcoded colour is a value no Figma variable govern
 token leaves it behind. Colours only, deliberately — a raw number in a layout is ambiguous, and a
 check that cries wolf takes the useful half down with it. The file that defines the palette goes in
 `tokens.allowLiteralsIn`; the doctor fails if one of those patterns stops matching anything, since a
-stale exception is a hole nobody is looking at.
+stale exception is a hole nobody is looking at. Comments are not values — a colour quoted from a
+design inside a `{/* … */}` block is documentation, and block state is tracked across lines so the
+continuation lines are not flagged either.
 
 **`audit-snippets`** — every identifier a published snippet renders must be imported, and no import
 may be relative, because a snippet is pasted somewhere else. This is the fault `figma connect
@@ -282,7 +286,7 @@ rewrite publishes a mixture, or sends a developer to the wrong library.
 ## Developing
 
 ```bash
-./tests/run.sh              # 33 cases against a throwaway fixture repo
+./tests/run.sh              # 38 cases against a throwaway fixture repo
 claude plugin validate .    # both manifests
 ```
 
@@ -314,7 +318,7 @@ from the code owner in `.github/CODEOWNERS` and all five checks green:
 
 | Check | Green means |
 | --- | --- |
-| `tests on Node 22` | every script parses, and the fixture suite's 33 cases pass on the oldest Node still in support |
+| `tests on Node 22` | every script parses, and the fixture suite's 38 cases pass on the oldest Node still in support |
 | `tests on Node 24` | the same on current Node |
 | `manifests agree` | `plugin.json` and the marketplace entry describe the same plugin at a valid version |
 | `plugin version bump` | either nothing users receive changed, or the version moved |

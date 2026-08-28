@@ -16,19 +16,11 @@
  */
 import { writeFileSync } from 'node:fs';
 import {
-  isPrivateComponentName,
+  liveComponents,
   mappedNodeIds,
   readComponentCache,
   readDesignOnlyBaseline,
-  retiredComponents,
 } from '../lib/files.mjs';
-
-function liveComponents(config) {
-  const retired = retiredComponents(config);
-  return readComponentCache(config)
-    .filter((component) => !retired.has(component.nodeId))
-    .filter((component) => !isPrivateComponentName(component.name));
-}
 
 function byPage(components) {
   const pages = new Map();
@@ -73,7 +65,7 @@ export default function main(config, argv = []) {
     return 0;
   }
 
-  const live = liveComponents(config);
+  const { live, excluded } = liveComponents(config, cache);
   const mapped = mappedNodeIds(config);
   const orphans = live.filter((component) => !mapped.has(component.nodeId));
   const covered = live.length - orphans.length;
@@ -81,10 +73,24 @@ export default function main(config, argv = []) {
 
   if (argv.includes('--write-baseline')) return writeBaseline(config, orphans);
 
+  const skipped = [
+    excluded.retired > 0 ? `${excluded.retired} retired` : null,
+    excluded.ignoredPages > 0 ? `${excluded.ignoredPages} on ignored pages` : null,
+  ].filter(Boolean);
+
   console.info(
     `${covered} of ${live.length} live component(s) mapped (${percent}%); ` +
-      `${orphans.length} with no code counterpart.`,
+      `${orphans.length} with no code counterpart.` +
+      (skipped.length > 0 ? `\n${skipped.join(' and ')} excluded from the count.` : ''),
   );
+
+  if (!config.figma.ignorePagePattern && orphans.length > 0) {
+    console.info(
+      'figma.ignorePagePattern is empty. If the library has pages nothing in code could ever map ' +
+        'to —\nan icon set held as SVGs, a cover page, documentation — name them, or this list ' +
+        'is mostly noise.',
+    );
+  }
 
   const mode = config.figma.designOnly;
 

@@ -24,27 +24,70 @@ const HEX_LENGTHS = new Set([3, 4, 6, 8]);
 const COLOR_FUNCTION = /\b(rgba?|hsla?)\s*\(/g;
 
 /**
- * A value written in a comment is documentation, not a value the component
- * renders — often the very thing being explained.
+ * Blanks out comments, keeping the line length so a column still lines up with
+ * the source. Block state has to carry across lines: the case that made this
+ * necessary was a value quoted from a design inside a `{/* … *\/}` block, where
+ * only the opening line looks like a comment.
+ *
+ * A value written in a comment is documentation — often a note about the very
+ * token that replaced it — so flagging it teaches people to delete the
+ * explanation.
  */
-const isComment = (line) => {
-  const trimmed = line.trimStart();
-  return trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*');
-};
+function stripComments(lines) {
+  let inBlock = false;
+  return lines.map((line) => {
+    let out = '';
+    let index = 0;
+    while (index < line.length) {
+      if (inBlock) {
+        const close = line.indexOf('*/', index);
+        if (close === -1) {
+          out += ' '.repeat(line.length - index);
+          index = line.length;
+        } else {
+          out += ' '.repeat(close + 2 - index);
+          index = close + 2;
+          inBlock = false;
+        }
+        continue;
+      }
+      const open = line.indexOf('/*', index);
+      const lineComment = line.indexOf('//', index);
+      if (lineComment !== -1 && (open === -1 || lineComment < open)) {
+        out += line.slice(index, lineComment) + ' '.repeat(line.length - lineComment);
+        index = line.length;
+        continue;
+      }
+      if (open === -1) {
+        out += line.slice(index);
+        index = line.length;
+        continue;
+      }
+      out += line.slice(index, open);
+      index = open;
+      inBlock = true;
+    }
+    return out;
+  });
+}
 
 function findingsIn(path) {
   const findings = [];
-  const lines = readFileSync(path, 'utf8').split('\n');
+  const source = readFileSync(path, 'utf8').split('\n');
+  const code = stripComments(source);
 
-  lines.forEach((line, index) => {
-    if (isComment(line)) return;
-
+  code.forEach((line, index) => {
     for (const match of line.matchAll(HEX)) {
       if (!HEX_LENGTHS.has(match[0].length - 1)) continue;
-      findings.push({ path, line: index + 1, literal: match[0], source: line.trim() });
+      findings.push({ path, line: index + 1, literal: match[0], source: source[index].trim() });
     }
     for (const match of line.matchAll(COLOR_FUNCTION)) {
-      findings.push({ path, line: index + 1, literal: `${match[1]}(…)`, source: line.trim() });
+      findings.push({
+        path,
+        line: index + 1,
+        literal: `${match[1]}(…)`,
+        source: source[index].trim(),
+      });
     }
   });
 

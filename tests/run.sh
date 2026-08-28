@@ -48,10 +48,11 @@ refute() {
 }
 
 # Config and cache mutations, as helpers so the expect lines stay readable.
-set_design_only() {
-  node -e 'const f=require("fs"),p=process.argv[1],d=JSON.parse(f.readFileSync(p,"utf8"));d.figma.designOnly=process.argv[2];f.writeFileSync(p,JSON.stringify(d,null,2)+"\n")' \
-    "$1/figma-bridge.json" "$2"
+set_figma() {
+  node -e 'const f=require("fs"),p=process.argv[1],d=JSON.parse(f.readFileSync(p,"utf8"));d.figma[process.argv[2]]=process.argv[3];f.writeFileSync(p,JSON.stringify(d,null,2)+"\n")' \
+    "$1/figma-bridge.json" "$2" "$3"
 }
+set_design_only() { set_figma "$1" designOnly "$2"; }
 allow_literals_in() {
   node -e 'const f=require("fs"),p=process.argv[1],d=JSON.parse(f.readFileSync(p,"utf8"));d.tokens.allowLiteralsIn=[process.argv[2]];f.writeFileSync(p,JSON.stringify(d,null,2)+"\n")' \
     "$1/figma-bridge.json" "$2"
@@ -197,6 +198,18 @@ expect "a baseline entry that is now mapped is reported stale" 1 "no longer unma
   bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
 rm -rf "$dir"
 
+dir="$(work)"
+refute "a component on an ignored page is not an orphan" 0 "Check  5:5" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+expect "…and is excluded from the coverage number" 0 "1 on ignored pages excluded" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+set_figma "$dir" ignorePagePattern ""
+expect "with no ignore pattern, an icon page swamps the list" 0 "Check  5:5" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+expect "…and the report says why the list is noisy" 0 "figma.ignorePagePattern is empty" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+rm -rf "$dir"
+
 # --- values written down instead of bound to a token ---
 
 dir="$(work)"
@@ -222,6 +235,15 @@ dir="$(work)"
 printf 'export const Separator = () => <View style={{ backgroundColor: rgba(0, 0, 0, 0.12) }} />;\n' \
   > "$dir/src/ds/Separator.tsx"
 expect "a colour function fails too" 1 "rgba(…)" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-hardcoded-values"
+rm -rf "$dir"
+
+dir="$(work)"
+# The case that made block state necessary: a value quoted from a design inside a
+# JSX comment, where only the opening line looks like a comment.
+printf 'export const Separator = () => (\n  <>\n    {/* copied from the design:\n    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%%, #00000052 88%%); */}\n    <View style={{ backgroundColor: theme.line }} />\n  </>\n);\n' \
+  > "$dir/src/ds/Separator.tsx"
+expect "a value quoted inside a block comment is not a finding" 0 "No hardcoded colours" -- \
   bash -c "cd '$dir' && node '$CLI' audit-hardcoded-values"
 rm -rf "$dir"
 

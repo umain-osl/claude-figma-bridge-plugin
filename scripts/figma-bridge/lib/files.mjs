@@ -282,4 +282,37 @@ export function matchesAnyPattern(path, patterns) {
   });
 }
 
+/** Components on a page the repo has declared out of scope for mapping. */
+export function ignoredPageComponents(config, cache = readComponentCache(config)) {
+  const source = config.figma.ignorePagePattern;
+  if (!source) return new Map();
+  const pattern = new RegExp(source, 'i');
+  const ignored = new Map();
+  for (const component of cache) {
+    if (component.pageName && pattern.test(component.pageName)) {
+      ignored.set(component.nodeId, `${component.name} (${component.pageName.trim()})`);
+    }
+  }
+  return ignored;
+}
+
+/**
+ * The components a mapping could reasonably point at: everything published,
+ * minus retired pages, minus pages declared out of scope, minus Figma's private
+ * components. This is the denominator of any coverage number, so it lives here
+ * rather than in each caller — a report and a doctor disagreeing about what
+ * counts is worse than either being wrong.
+ */
+export function liveComponents(config, cache = readComponentCache(config)) {
+  const retired = retiredComponents(config, cache);
+  const ignored = ignoredPageComponents(config, cache);
+  const live = cache.filter(
+    (component) =>
+      !retired.has(component.nodeId) &&
+      !ignored.has(component.nodeId) &&
+      !isPrivateComponentName(component.name),
+  );
+  return { live, excluded: { retired: retired.size, ignoredPages: ignored.size } };
+}
+
 export const rel = (path) => relative(process.cwd(), path).split(sep).join('/');

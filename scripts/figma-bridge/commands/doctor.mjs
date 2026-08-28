@@ -10,13 +10,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import { CONFIG_NAME } from '../lib/config.mjs';
 import {
   componentFiles,
-  isPrivateComponentName,
+  liveComponents,
   mappedNodeIds,
   mappingFiles,
   matchesAnyPattern,
   readCacheMeta,
   readComponentCache,
-  retiredComponents,
 } from '../lib/files.mjs';
 
 const ok = (message) => console.info(`  ok    ${message}`);
@@ -90,14 +89,14 @@ export default function main(config) {
   if (cache.length === 0) {
     warn('no cache, so the design side cannot be counted');
   } else {
-    const retired = retiredComponents(config, cache);
-    const live = cache.filter(
-      (component) => !retired.has(component.nodeId) && !isPrivateComponentName(component.name),
-    );
+    const { live, excluded } = liveComponents(config, cache);
     const mapped = mappedNodeIds(config);
     const orphans = live.filter((component) => !mapped.has(component.nodeId));
     const percent = live.length === 0 ? 100 : Math.round(((live.length - orphans.length) / live.length) * 100);
-    ok(`${live.length - orphans.length} of ${live.length} live component(s) mapped (${percent}%)`);
+    ok(
+      `${live.length - orphans.length} of ${live.length} live component(s) mapped (${percent}%)` +
+        (excluded.ignoredPages > 0 ? `, ${excluded.ignoredPages} excluded by page` : ''),
+    );
     if (orphans.length > 0) {
       warn(
         `${orphans.length} published component(s) have no code counterpart. \`audit-design-orphans\`\n` +

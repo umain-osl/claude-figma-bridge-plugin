@@ -16,6 +16,7 @@
     "fileKey": "REPLACE",
     "fileName": "REPLACE — the file name as it reads in Figma",
     "retiredPagePattern": "graveyard|deprecated|archive",
+    "ignorePagePattern": "REPLACE — pages nothing in code can map to, e.g. icons|cover|documentation",
     "designOnly": "report"
   },
   "codeConnect": {
