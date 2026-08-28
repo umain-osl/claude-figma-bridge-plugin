@@ -1,4 +1,27 @@
 [
-  { "nodeId": "1:1", "name": "Button", "pageName": "Components" },
-  { "nodeId": "9:9", "name": "Old Button", "pageName": "Graveyard" }
+  {
+    "nodeId": "1:1",
+    "name": "Button",
+    "pageName": "Components"
+  },
+  {
+    "nodeId": "2:2",
+    "name": "Toggle",
+    "pageName": "Components"
+  },
+  {
+    "nodeId": "5:5",
+    "name": "Check",
+    "pageName": "Ikoner ☒"
+  },
+  {
+    "nodeId": "3:3",
+    "name": ".baseToggleStates",
+    "pageName": "Components"
+  },
+  {
+    "nodeId": "9:9",
+    "name": "Old Button",
+    "pageName": "Graveyard"
+  }
 ]

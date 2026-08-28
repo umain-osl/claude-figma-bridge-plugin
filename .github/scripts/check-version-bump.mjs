@@ -26,6 +26,7 @@ const NOT_SHIPPED = [
   /^\.github\//,
   /^\.githooks\//,
   /^tests\//,
+  /^evals\//,
   /^docs\//,
   /^\.gitignore$/,
   /^README\.md$/,

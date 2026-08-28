@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { findConfig, loadConfig } from '../lib/config.mjs';
 import auditCoverage from './audit-coverage.mjs';
+import auditHardcodedValues from './audit-hardcoded-values.mjs';
 import auditSnippets from './audit-snippets.mjs';
 
 function payload() {
@@ -83,7 +84,7 @@ function postWrite(input) {
   if (!inDesignSystem && !isMapping) return 0;
 
   const audits = [];
-  if (inDesignSystem) audits.push(auditCoverage);
+  if (inDesignSystem) audits.push(auditCoverage, auditHardcodedValues);
   if (isMapping) audits.push(auditSnippets);
 
   const log = console.info;

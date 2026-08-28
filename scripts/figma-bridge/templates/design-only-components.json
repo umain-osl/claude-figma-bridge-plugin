@@ -1,0 +1,4 @@
+{
+  "$comment": "Published Figma components accepted as having no code counterpart. A baseline, not a list of decisions: a library holds more than any one codebase uses, so the point is that the accepted set cannot grow by accident. Only read when figma.designOnly is \"baseline\". Regenerate with `figma-bridge audit-design-orphans --write-baseline`, and write a reason on anything that is a real gap rather than simply unused.",
+  "components": []
+}

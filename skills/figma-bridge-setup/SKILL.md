@@ -60,13 +60,18 @@ CI** — there is no service credential for it.
 
 Two plan-level facts worth knowing before debugging something that is not broken:
 
-- **Code Connect requires an Organization plan and a Full seat.** Without it the CLI fails in a way
-  that reads like a bad token.
-- **The Variables REST API is Enterprise-only** — on a lower plan the scope does not exist. This is
-  why variables are read and written through the **Plugin API** (`figma.variables`) via `use_figma`
-  instead, which has no such restriction.
+- **Code Connect requires a Dev or Full seat on an Organization or Enterprise plan.** Without it the
+  CLI fails in a way that reads like a bad token. The audits, the guards and CI need no plan at all —
+  they never call the API — so a repo below that line can still keep an enforced correspondence; what
+  it loses is publishing and the Dev Mode snippet.
+- **The Variables REST API is limited to full members of Enterprise orgs** — on a lower plan the
+  scope does not exist. This is why variables are read and written through the **Plugin API**
+  (`figma.variables`) via `use_figma` instead, which has no such restriction.
+- **Writing designs from an agent goes through the remote MCP server**, and the desktop server needs
+  a Dev or Full seat on a paid plan. Agent-driven design creation is free during its beta and
+  becomes usage-based after, so treat write volume as something that will eventually have a price.
 
-MCP reads are quota-limited per plan (200/day at 15/min on Organization). The Code Connect CLI goes
+MCP reads are quota-limited per plan. The Code Connect CLI goes
 through the REST API with the token and does not touch that quota — only design *reads* do.
 
 ## 3. One Figma file key, in one place

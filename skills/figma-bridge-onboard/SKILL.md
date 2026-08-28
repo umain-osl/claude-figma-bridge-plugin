@@ -36,9 +36,11 @@ depends on them:
    write guard has to be, and whether `importComponentSetByKeyAsync` can work at all.
 3. **Who owns the design side.** Every unmappable difference this process finds is a question for
    that person, not something to resolve in code.
-4. **Plan and seat.** Code Connect needs an Organization plan and a Full seat; without it the CLI
-   fails in a way that reads like a bad token. The Variables REST API is Enterprise-only, which
-   is why variables are read and written through the Plugin API instead.
+4. **Plan and seat.** Code Connect needs a **Dev or Full seat on an Organization or Enterprise
+   plan**; without it the CLI fails in a way that reads like a bad token, so establish it before
+   promising anyone a Dev Mode snippet. The Variables REST API is limited to Enterprise orgs, which
+   is why variables go through the Plugin API instead. The audits themselves need no plan — say so,
+   because it decides how much of this a team can adopt today.
 
 ## 1. Detect the design system
 
@@ -60,6 +62,20 @@ What you need to settle:
   For another Code Connect parser (`swift`, `compose`, `html`), set these and `codeConnect.parser`
   to match; the audits are React-shaped, so say plainly that snippet-import checking does not
   apply.
+- **`tokens.allowLiteralsIn`** — the file(s) that define the palette. `audit-hardcoded-values`
+  fails on a colour written down anywhere else under the roots, so this list is the only sanctioned
+  exception. Find the palette rather than guessing: it is usually the module the components import
+  their colours from. Keep it as short as it can be, and note that a pattern matching nothing makes
+  the doctor fail, because a stale exception is a hole nobody looks at.
+- **`figma.ignorePagePattern`** — the pages nothing in code could ever map to. Read the page names
+  out of the cache before deciding: an icon set the repo holds as SVGs, a cover page, a
+  documentation page. Skipping this is the difference between a design-side report someone reads and
+  one that is mostly icons.
+- **`figma.designOnly`** — leave it `report` at onboarding. `audit-design-orphans` will list every
+  published component with no code counterpart, which at this stage is most of the library; that
+  list is a finding to hand the design owner, not a failure. Switch to `baseline` once the team
+  wants coverage frozen, and write the baseline with
+  `figma-bridge audit-design-orphans --write-baseline`.
 - **`verify`** — the exact commands that gate a change in this repo. Get them from
   `package.json`, and note the traps: a repo where `npm test` is an e2e build needs the unit
   command named explicitly.

@@ -70,8 +70,10 @@ Read `paths.tokenMap` from `figma-bridge.json` and use it. It is the repo's own 
 from Figma variable and text-style names to code, and it exists so that **no hex value and no raw
 pixel value ever crosses from Figma into the codebase**.
 
-If the map has no row for something the design uses, that is a finding: add the row (having
-decided the correspondence deliberately) rather than inlining a literal at the call site.
+If the map has no row for something the design uses, that is a finding: add the row (having decided
+the correspondence deliberately) rather than inlining a literal at the call site. This is enforced,
+not advised — `audit-hardcoded-values` fails on a colour written down inside the design system
+roots, and the `PostToolUse` hook reports it at the moment of the write.
 
 Two rules that survive every repo:
 
