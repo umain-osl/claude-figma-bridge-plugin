@@ -1,0 +1,4 @@
+{
+  "$comment": "Components that deliberately have no Figma counterpart. Enforced by `figma-bridge audit-coverage`, which fails when a component is neither mapped nor declared here. An entry is a design decision on the record — do not add one to silence the check.",
+  "components": []
+}

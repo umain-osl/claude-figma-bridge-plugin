@@ -1,0 +1,18 @@
+{
+  "designSystem": {
+    "name": "Fixture DS",
+    "roots": ["src/ds"],
+    "ignoreDirs": ["icons"]
+  },
+  "figma": {
+    "fileKey": "abcdefghijklmnopqrstuv",
+    "fileName": "Fixture Library",
+    "retiredPagePattern": "graveyard"
+  },
+  "paths": {
+    "unmapped": "design/figma/unmapped-components.json",
+    "componentCache": "design/figma/components.json",
+    "componentCacheMeta": "design/figma/components.meta.json"
+  },
+  "verify": ["echo verify"]
+}

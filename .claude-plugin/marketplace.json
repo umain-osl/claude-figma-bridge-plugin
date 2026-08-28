@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "figma-bridge",
+  "metadata": {
+    "description": "Two-way Figma ↔ code workflow for any design system, with Code Connect mappings as the substrate."
+  },
+  "owner": { "name": "Wesley Cheung", "email": "wesley.cheung@umain.com" },
+  "plugins": [
+    {
+      "name": "figma-bridge",
+      "source": "./",
+      "description": "Two-way Figma ↔ code workflow for any design system: Code Connect mappings as the substrate, a reuse gate that blocks invented components, and enforcement that survives the session.",
+      "category": "design",
+      "author": { "name": "Wesley Cheung" },
+      "tags": ["figma", "code-connect", "design-system", "skills", "hooks"]
+    }
+  ]
+}

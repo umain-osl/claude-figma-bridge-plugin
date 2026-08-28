@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__figma__use_figma|mcp__figma__generate_figma_design|mcp__figma__upload_assets|mcp__figma__add_code_connect_map|mcp__figma__send_code_connect_mappings",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/figma-bridge/cli.mjs\" guard --pre-write",
+            "timeout": 10,
+            "statusMessage": "Checking the Figma target file"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/figma-bridge/cli.mjs\" guard --post-write",
+            "timeout": 30,
+            "statusMessage": "Checking design system coverage"
+          }
+        ]
+      }
+    ]
+  }
+}

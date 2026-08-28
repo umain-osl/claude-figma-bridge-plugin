@@ -1,0 +1,9 @@
+{
+  "components": [
+    {
+      "path": "src/ds/Separator.tsx",
+      "reason": "Drawn as a 1px line inside other components in Figma rather than published on its own.",
+      "decidedOn": "2026-01-01"
+    }
+  ]
+}
