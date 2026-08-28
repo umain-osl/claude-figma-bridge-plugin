@@ -14,7 +14,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat" alt="Claude Code plugin">
-  <img src="https://img.shields.io/badge/node-20%2B-3c873a?style=flat" alt="Node 20+">
+  <img src="https://img.shields.io/badge/node-22%2B-3c873a?style=flat" alt="Node 22+">
   <img src="https://img.shields.io/badge/dependencies-0-4dd6b0?style=flat" alt="Zero dependencies">
   <img src="https://img.shields.io/badge/skills-6-blue?style=flat" alt="6 skills">
   <img src="https://img.shields.io/badge/design_system-any-8957e5?style=flat" alt="Any design system">
@@ -182,7 +182,7 @@ All three no-op in a repo without a `figma-bridge.json`, so the plugin is safe t
 
 ## The checks
 
-`scripts/figma-bridge/` is a zero-dependency Node CLI (Node 20+). Plugin installs run no package
+`scripts/figma-bridge/` is a zero-dependency Node CLI (Node 22+). Plugin installs run no package
 manager, and a script inside a plugin directory cannot resolve the host repo's `node_modules` — so
 the checks depend on nothing but Node itself, and keep working in a repo whose CI installs with
 `--omit=dev`.
@@ -237,6 +237,29 @@ The banner is generated, not hand-drawn — edit `docs/assets/banner.html` and r
   --force-device-scale-factor=2 --window-size=720,180 \
   --screenshot="$PWD/docs/assets/banner.png" "file://$PWD/docs/assets/banner.html"
 ```
+
+Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org/), and CI fails a
+PR whose commits or title do not — the log is the only changelog this repo has. Turn on the local
+hook so you find out at commit time rather than after a push:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`main` takes no direct pushes. Every change goes through a pull request with an approving review
+from the code owner in `.github/CODEOWNERS` and all five checks green:
+
+| Check | Green means |
+| --- | --- |
+| `tests on Node 22` | every script parses, and the fixture suite's 19 cases pass on the oldest Node still in support |
+| `tests on Node 24` | the same on current Node |
+| `manifests agree` | `plugin.json` and the marketplace entry describe the same plugin at a valid version |
+| `plugin version bump` | either nothing users receive changed, or the version moved |
+| `conventional commits` | every commit subject and the PR title parse as Conventional Commits |
+
+Repository admins can bypass all of it, which is not an oversight: with a single code owner,
+GitHub's refusal to count an author as their own approver would otherwise make the owner's pull
+requests unmergeable.
 
 **Bump `version` in `.claude-plugin/plugin.json` in any PR that changes a shipped file.** Claude
 Code decides whether to re-download by comparing that string, so a change merged under an unchanged

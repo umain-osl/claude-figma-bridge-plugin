@@ -92,8 +92,8 @@ export default function main(config) {
 
   console.info('\nLocal toolchain');
   const [major] = process.versions.node.split('.').map(Number);
-  if (major >= 20) ok(`node ${process.versions.node}`);
-  else fail(`node ${process.versions.node} — these scripts need Node 20 or newer`);
+  if (major >= 22) ok(`node ${process.versions.node}`);
+  else fail(`node ${process.versions.node} — these scripts need Node 22 or newer`);
   if (existsSync('node_modules/@figma/code-connect')) ok('@figma/code-connect installed');
   else warn('@figma/code-connect is not installed; `check` cannot dry-run a publish');
 

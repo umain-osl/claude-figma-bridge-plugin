@@ -1,8 +1,9 @@
 /**
  * Locating and reading the design system's files, and the four Figma-side JSON artifacts.
  *
- * The directory walk is hand-rolled rather than `fs.globSync` so the vendored copy runs on the
- * oldest Node a target repo is likely to pin.
+ * The directory walk is hand-rolled rather than `fs.globSync`, which only arrived in Node 22 and
+ * was experimental there. This copy gets vendored into other repos and run by their CI, so it
+ * sticks to APIs that are years old everywhere.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, relative, sep } from 'node:path';
