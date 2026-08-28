@@ -1,13 +1,8 @@
-# Every change needs an approving review from someone here, enforced by the
-# branch protection on main. Two names rather than one on purpose: GitHub does
-# not count a PR's author as its approver, so a single code owner would make
-# their own pull requests unmergeable.
-*                       @wmcheung @aswinnalliah
-
-# The manifests decide what installs and what version reaches people. A wrong
-# version string is served from cache and reports success while doing it.
-/.claude-plugin/        @wmcheung
-
-# The guards run on other people's machines, in every repo the plugin touches.
-/hooks/                 @wmcheung
-/scripts/figma-bridge/  @wmcheung
+# Every pull request needs an approving review from an owner here, enforced by
+# the branch protection on main.
+#
+# One owner, deliberately. The consequence is that admin enforcement has to stay
+# off: GitHub never counts a pull request's author as its approver, so a sole
+# code owner cannot approve their own work and would otherwise be unable to merge
+# anything at all. The bypass is what keeps that possible — see README.
+*   @wmcheung

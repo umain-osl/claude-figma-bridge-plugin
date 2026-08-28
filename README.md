@@ -246,6 +246,11 @@ hook so you find out at commit time rather than after a push:
 git config core.hooksPath .githooks
 ```
 
+`main` takes no direct pushes. Every change goes through a pull request with the four checks green
+and an approving review from the code owner in `.github/CODEOWNERS`. Repository admins can bypass
+that, which is not an oversight: with a single code owner, GitHub's refusal to count an author as
+their own approver would otherwise make the owner's pull requests unmergeable.
+
 **Bump `version` in `.claude-plugin/plugin.json` in any PR that changes a shipped file.** Claude
 Code decides whether to re-download by comparing that string, so a change merged under an unchanged
 version never reaches anyone — and reports the stale copy as already up to date. CI enforces it.
