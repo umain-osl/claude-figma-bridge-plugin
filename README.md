@@ -305,6 +305,13 @@ The banner is generated, not hand-drawn — edit `docs/assets/banner.html` and r
   --screenshot="$PWD/docs/assets/banner.png" "file://$PWD/docs/assets/banner.html"
 ```
 
+`tests/` covers the checks — deterministic code, deterministic assertions. `evals/` covers the
+skills, which is the half that regresses silently, since a skill is prose. Six cases with graders are
+authored there; the runner (`claude plugin eval`) is in early access and not yet enabled, so they are
+in the documented `prompt.md` + `graders/*.md` form with no guessed `case.yaml`. The number to watch
+when it runs is the **ablation delta** — a case that passes with and without the plugin is measuring
+the model, not the skill.
+
 Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org/), and CI fails a
 PR whose commits or title do not — the log is the only changelog this repo has. Turn on the local
 hook so you find out at commit time rather than after a push:
