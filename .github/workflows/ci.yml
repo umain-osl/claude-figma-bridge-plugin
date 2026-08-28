@@ -9,28 +9,50 @@ on:
     types: [opened, synchronize, reopened, edited]
 
 jobs:
-  checks:
+  tests:
+    # The check's name is what a reviewer reads next to a red cross, so it says
+    # which Node it was and what it ran rather than "checks (20)".
+    name: tests on Node ${{ matrix.node }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        # The floor the vendored checks promise, and current.
-        node: [20, 24]
+        # The two ends of the promise: the oldest Node still in support, and
+        # current. The checks are vendored into other repos and run by hooks from
+        # whoever's PATH, so the floor is not ours to assume.
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Syntax-check every script
-        run: find scripts -name '*.mjs' -print0 | xargs -0 -n1 node --check
+      - name: Every script parses under this Node
+        run: |
+          find scripts .github/scripts -name '*.mjs' -print0 | xargs -0 -n1 node --check
+          echo "Parsed on $(node -v)."
 
-      - name: Fixture checks
+      - name: Fixture repo — 19 cases, each asserted in both directions
+        # The clean fixture must pass, and every mutation must fail with the
+        # message that explains it. A check that only tests the passing
+        # direction cannot tell you the gate still works.
         run: ./tests/run.sh
 
-      - name: Manifests agree
+  manifests:
+    # Not in the Node matrix: the manifests do not depend on a runtime, and
+    # running this twice would only make one failure look like two.
+    name: manifests agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: plugin.json and marketplace.json describe the same plugin
         run: node .github/scripts/check-manifests.mjs
 
   version:
+    name: plugin version bump
     # A change merged under a version that did not move never reaches anyone:
     # Claude Code compares the version string, not the content.
     if: github.event_name == 'pull_request'
@@ -39,35 +61,37 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Version bumped when shipped files change
+      - name: Version moved, if this PR changes anything users receive
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: node .github/scripts/check-version-bump.mjs "$BASE" "$HEAD"
 
-  commit-messages:
+  commits:
+    name: conventional commits
     # The commit log is this repo's only changelog, and it is only readable while
     # the subjects are. Both the commits and the PR title are checked, because a
     # merge commit keeps the subjects while a squash merge uses the title.
-    name: commit messages
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Conventional Commits
+      - name: Every commit in this PR, and the PR title
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: node .github/scripts/check-commit-messages.mjs "$BASE" "$HEAD"
-      - name: The gate can still fail
-        # A validator that has quietly started passing everything is worse than
-        # no validator, because the log looks enforced.
+
+      - name: The validator still rejects a bad subject
+        # A linter that has quietly started passing everything is worse than no
+        # linter, because the log then looks enforced.
         run: |
           printf 'update the readme\n' > /tmp/bad-message
           if node .github/scripts/check-commit-messages.mjs --file /tmp/bad-message; then
             echo "The validator accepted a non-conventional subject." >&2
             exit 1
           fi
+          echo "Rejected as expected."
