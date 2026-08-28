@@ -238,6 +238,14 @@ The banner is generated, not hand-drawn — edit `docs/assets/banner.html` and r
   --screenshot="$PWD/docs/assets/banner.png" "file://$PWD/docs/assets/banner.html"
 ```
 
+Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org/), and CI fails a
+PR whose commits or title do not — the log is the only changelog this repo has. Turn on the local
+hook so you find out at commit time rather than after a push:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 **Bump `version` in `.claude-plugin/plugin.json` in any PR that changes a shipped file.** Claude
 Code decides whether to re-download by comparing that string, so a change merged under an unchanged
 version never reaches anyone — and reports the stale copy as already up to date. CI enforces it.

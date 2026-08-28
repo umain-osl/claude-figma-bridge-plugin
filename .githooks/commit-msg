@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Rejects a commit message that is not Conventional Commits, using the same
+# validator CI runs — so the message is fixed while it is still one commit and a
+# local amend, rather than after a push.
+#
+# Enable once per clone (git does not install hooks for you):
+#
+#   git config core.hooksPath .githooks
+exec node "$(git rev-parse --show-toplevel)/.github/scripts/check-commit-messages.mjs" --file "$1"
