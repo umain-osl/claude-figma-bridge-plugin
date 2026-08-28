@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>figma-bridge banner</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --ink: #f4f7fb;
+    --dim: #78828f;
+    --line: #232c3b;
+    --accent: #4dd6b0;
+    --mono: Menlo, "SF Mono", ui-monospace, monospace;
+    --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 720px; height: 180px; position: relative; overflow: hidden;
+    background:
+      radial-gradient(90% 140% at 6% -20%, #16203040 0%, transparent 60%),
+      var(--bg);
+    color: var(--ink); font-family: var(--sans);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 44px;
+  }
+  .rule { position: absolute; inset: 0 0 auto 0; height: 2px;
+          background: linear-gradient(90deg, var(--accent) 0%, #4d8fd6 48%, transparent 88%); }
+  .dots { position: absolute; inset: 0; opacity: .35;
+    background-image: radial-gradient(#1c2534 1px, transparent 1px);
+    background-size: 16px 16px; }
+  .left { position: relative; }
+  h1 { font-size: 37px; font-weight: 700; letter-spacing: -1.1px; }
+  h1 .sep { color: var(--accent); }
+  .tag { margin-top: 11px; font-family: var(--mono); font-size: 13.5px;
+         color: var(--ink); opacity: .8; }
+  .kicker { margin-top: 15px; font-family: var(--mono); font-size: 9.5px;
+            letter-spacing: 2.4px; text-transform: uppercase; color: var(--dim); }
+
+  .wire { position: relative; display: flex; align-items: center; gap: 0;
+          font-family: var(--mono); }
+  .node { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px;
+          font-size: 11.5px; color: var(--dim); background: #0e131d; white-space: nowrap; }
+  .node b { color: var(--ink); font-weight: 500; }
+  .conn { position: relative; width: 124px; height: 34px; }
+  .conn .dash { position: absolute; top: 21px; left: 22px; right: 22px; height: 1px;
+    background: repeating-linear-gradient(90deg, var(--accent) 0 4px, transparent 4px 8px); }
+  .conn .cap { position: absolute; top: 16.5px; color: var(--accent); font-size: 11px; line-height: 1; }
+  .conn .cap.l { left: 8px; }
+  .conn .cap.r { right: 8px; }
+  .conn .label { position: absolute; top: 1px; left: 0; right: 0; text-align: center;
+    font-size: 9px; letter-spacing: 1.4px; color: var(--accent); text-transform: uppercase; }
+</style>
+<div class="rule"></div>
+<div class="dots"></div>
+<div class="left">
+  <h1>figma<span class="sep">-</span>bridge</h1>
+  <div class="tag">the component already exists</div>
+  <div class="kicker">Claude Code plugin</div>
+</div>
+<div class="wire">
+  <div class="node"><b>Button</b> 12:340</div>
+  <div class="conn">
+    <div class="label">code connect</div>
+    <div class="cap l">◄</div>
+    <div class="dash"></div>
+    <div class="cap r">►</div>
+  </div>
+  <div class="node">&lt;<b>Button</b> /&gt;</div>
+</div>
