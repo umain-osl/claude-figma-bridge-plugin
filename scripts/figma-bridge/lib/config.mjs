@@ -37,6 +37,15 @@ const configSchema = object({
       fileKey: required(fileKey),
       fileName: required(str()),
       retiredPagePattern: withDefault(str({ min: 0 }), ''),
+      /**
+       * What to do about published components with no mapping. `report` prints
+       * them and passes: in a library larger than the slice a codebase uses,
+       * most components legitimately have no counterpart, and failing on that
+       * would make the check something people switch off. `baseline` turns it
+       * into a ratchet — coverage can stay where it is but cannot silently get
+       * worse.
+       */
+      designOnly: withDefault(str(), 'report'),
     }),
   ),
   paths: required(
@@ -46,6 +55,7 @@ const configSchema = object({
       componentCacheMeta: required(str()),
       tokenMap: optional(str()),
       libraryNotes: optional(str()),
+      designOnly: optional(str()),
     }),
   ),
   codeConnect: withDefault(
@@ -55,6 +65,13 @@ const configSchema = object({
     }),
     { parser: 'react' },
   ),
+  /**
+   * Where a raw colour literal is still allowed: the file that defines the
+   * palette has to write the values down somewhere.
+   */
+  tokens: withDefault(object({ allowLiteralsIn: withDefault(arrayOf(str()), []) }), {
+    allowLiteralsIn: [],
+  }),
   verify: withDefault(arrayOf(str()), []),
   fonts: optional(
     object({

@@ -30,6 +30,37 @@ expect() {
   fi
 }
 
+# refute <name> <expected-exit> <substring-that-must-be-absent> -- <command...>
+refute() {
+  local name="$1" want_code="$2" unwanted="$3"
+  shift 4
+  local out code
+  out="$("$@" 2>&1)"
+  code=$?
+  if [[ "$code" == "$want_code" && "$out" != *"$unwanted"* ]]; then
+    pass=$((pass + 1))
+    printf '  ok    %s\n' "$name"
+  else
+    fail=$((fail + 1))
+    printf '  FAIL  %s\n        wanted exit %s without %q\n        got exit %s:\n%s\n' \
+      "$name" "$want_code" "$unwanted" "$code" "$out"
+  fi
+}
+
+# Config and cache mutations, as helpers so the expect lines stay readable.
+set_design_only() {
+  node -e 'const f=require("fs"),p=process.argv[1],d=JSON.parse(f.readFileSync(p,"utf8"));d.figma.designOnly=process.argv[2];f.writeFileSync(p,JSON.stringify(d,null,2)+"\n")' \
+    "$1/figma-bridge.json" "$2"
+}
+allow_literals_in() {
+  node -e 'const f=require("fs"),p=process.argv[1],d=JSON.parse(f.readFileSync(p,"utf8"));d.tokens.allowLiteralsIn=[process.argv[2]];f.writeFileSync(p,JSON.stringify(d,null,2)+"\n")' \
+    "$1/figma-bridge.json" "$2"
+}
+publish_component() {
+  node -e 'const f=require("fs"),p=process.argv[1],c=JSON.parse(f.readFileSync(p,"utf8"));c.push({nodeId:process.argv[2],name:process.argv[3],pageName:"Components"});f.writeFileSync(p,JSON.stringify(c,null,2)+"\n")' \
+    "$1/design/figma/components.json" "$2" "$3"
+}
+
 # Each case runs in its own copy, so a mutation cannot leak into the next one.
 work() {
   local dir
@@ -128,6 +159,70 @@ expect "the write guard ignores an unconfigured repo" 0 "" -- \
   bash -c "cd '$dir' && printf '{\"tool_input\":{\"fileKey\":\"zzzzzzzzzzzzzzzzzzzzzz\"}}' | node '$CLI' guard --pre-write"
 expect "the post-write guard ignores an unconfigured repo" 0 "" -- \
   bash -c "cd '$dir' && printf '{\"tool_input\":{\"file_path\":\"$dir/x.tsx\"}}' | node '$CLI' guard --post-write"
+rm -rf "$dir"
+
+# --- the other direction: published components with no mapping ---
+
+dir="$(work)"
+expect "unmapped published components are reported" 0 "Toggle  2:2" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+expect "…with the coverage stated" 0 "1 of 2 live component(s) mapped (50%)" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+refute "a private component is not an orphan" 0 ".baseToggleStates" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+refute "a retired component is not an orphan" 0 "Old Button" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+rm -rf "$dir"
+
+dir="$(work)"; set_design_only "$dir" baseline
+expect "baseline mode with no baseline fails" 1 "no baseline to compare against" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+expect "--write-baseline accepts the current set" 0 "Wrote 1 component(s)" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans --write-baseline"
+expect "…and then the ratchet holds" 0 "Every unmapped component is in the baseline" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+# A component published after the baseline was taken is the case this mode exists
+# for: coverage may stay where it is, but it may not slip.
+publish_component "$dir" "4:4" "Switch"
+expect "a newly published component breaks the ratchet" 1 "Switch  4:4" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+rm -rf "$dir"
+
+dir="$(work)"; set_design_only "$dir" baseline
+( cd "$dir" && node "$CLI" audit-design-orphans --write-baseline >/dev/null 2>&1 )
+# Mapping a baselined component has to force the entry out, or the baseline keeps
+# accepting something that is no longer unmapped.
+sed -i.bak 's/node-id=1-1/node-id=2-2/g' "$dir/src/ds/Button.figma.ts"
+expect "a baseline entry that is now mapped is reported stale" 1 "no longer unmapped" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-design-orphans"
+rm -rf "$dir"
+
+# --- values written down instead of bound to a token ---
+
+dir="$(work)"
+printf 'export const Separator = () => <View style={{ borderColor: "#ff0000" }} />;\n' \
+  > "$dir/src/ds/Separator.tsx"
+expect "a hardcoded hex colour fails" 1 "src/ds/Separator.tsx:1  #ff0000" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-hardcoded-values"
+expect "…and trips the post-write guard" 2 "instead of bound to a token" -- \
+  bash -c "cd '$dir' && printf '{\"tool_input\":{\"file_path\":\"$dir/src/ds/Separator.tsx\"}}' | node '$CLI' guard --post-write"
+allow_literals_in "$dir" "src/ds/Separator.tsx"
+expect "…unless that file is where the palette lives" 0 "1 path pattern(s) allowed" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-hardcoded-values"
+rm -rf "$dir"
+
+dir="$(work)"
+printf 'export const Separator = () => <View style={{ backgroundColor: theme.line }} />;\n// was rgba(0, 0, 0, 0.12) before the token existed\n' \
+  > "$dir/src/ds/Separator.tsx"
+expect "a colour named in a comment is documentation, not a value" 0 "No hardcoded colours" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-hardcoded-values"
+rm -rf "$dir"
+
+dir="$(work)"
+printf 'export const Separator = () => <View style={{ backgroundColor: rgba(0, 0, 0, 0.12) }} />;\n' \
+  > "$dir/src/ds/Separator.tsx"
+expect "a colour function fails too" 1 "rgba(…)" -- \
+  bash -c "cd '$dir' && node '$CLI' audit-hardcoded-values"
 rm -rf "$dir"
 
 echo

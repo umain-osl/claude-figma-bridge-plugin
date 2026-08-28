@@ -1,18 +1,29 @@
 {
   "designSystem": {
     "name": "Fixture DS",
-    "roots": ["src/ds"],
-    "ignoreDirs": ["icons"]
+    "roots": [
+      "src/ds"
+    ],
+    "ignoreDirs": [
+      "icons"
+    ]
   },
   "figma": {
     "fileKey": "abcdefghijklmnopqrstuv",
     "fileName": "Fixture Library",
-    "retiredPagePattern": "graveyard"
+    "retiredPagePattern": "graveyard",
+    "designOnly": "report"
   },
   "paths": {
     "unmapped": "design/figma/unmapped-components.json",
     "componentCache": "design/figma/components.json",
-    "componentCacheMeta": "design/figma/components.meta.json"
+    "componentCacheMeta": "design/figma/components.meta.json",
+    "designOnly": "design/figma/design-only-components.json"
   },
-  "verify": ["echo verify"]
+  "tokens": {
+    "allowLiteralsIn": []
+  },
+  "verify": [
+    "echo verify"
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "figma-bridge",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Two-way Figma ↔ code workflow for any design system: Code Connect mappings as the substrate, a reuse gate that blocks invented components, and enforcement that survives the session.",
   "author": {
     "name": "Wesley Cheung"

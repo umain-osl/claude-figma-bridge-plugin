@@ -216,4 +216,70 @@ export function retiredComponents(config, cache = readComponentCache(config)) {
   return retired;
 }
 
+const designOnlySchema = object({
+  components: withDefault(
+    arrayOf(
+      object({
+        nodeId: required(str()),
+        name: required(str()),
+        reason: optional(str()),
+      }),
+    ),
+    [],
+  ),
+});
+
+/**
+ * Published components accepted as having no code counterpart. This is a
+ * baseline rather than a list of decisions: a library holds more than any one
+ * codebase uses, so the point is that the accepted set cannot grow by accident.
+ */
+export function readDesignOnlyBaseline(config) {
+  const path = config.paths.designOnly;
+  if (!path) return null;
+  const parsed = readJson(path, designOnlySchema, 'The design-only baseline', { optional: true });
+  return parsed ? parsed.components : null;
+}
+
+/**
+ * Figma's convention for a component the library does not publish: a leading dot
+ * (and, by local habit in some libraries, an underscore). Mapping one would link
+ * code against something consumers cannot instantiate.
+ */
+export function isPrivateComponentName(name) {
+  return /^[._]/.test(name.trim());
+}
+
+/** Node ids every mapping in the repo targets. */
+export function mappedNodeIds(config) {
+  const ids = new Set();
+  for (const path of mappingFiles(config)) {
+    for (const nodeId of nodeIdsIn(readFileSync(path, 'utf8'))) ids.add(nodeId);
+  }
+  return ids;
+}
+
+/**
+ * A path matcher small enough to vendor: `*` stops at a slash, `**` does not.
+ * Anything without a wildcard matches as a literal path or a directory prefix,
+ * which is what people write in a config by hand.
+ */
+export function matchesAnyPattern(path, patterns) {
+  return patterns.some((pattern) => {
+    if (!pattern.includes('*')) {
+      return path === pattern || path.startsWith(pattern.endsWith('/') ? pattern : `${pattern}/`);
+    }
+    const source = pattern
+      .split('**')
+      .map((part) =>
+        part
+          .split('*')
+          .map((literal) => literal.replace(/[.+^${}()|[\]\\]/g, '\\$&'))
+          .join('[^/]*'),
+      )
+      .join('.*');
+    return new RegExp(`^${source}$`).test(path);
+  });
+}
+
 export const rel = (path) => relative(process.cwd(), path).split(sep).join('/');

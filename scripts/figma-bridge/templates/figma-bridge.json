@@ -2,8 +2,12 @@
   "$comment": "Figma Bridge config. The one file that makes the generic checks repo-specific — see tools/figma-bridge for what reads it. Change figma.fileKey with `figma-bridge retarget`, never by hand: the key also appears in every mapping and every component doc-link, and a partial rewrite publishes a mixture.",
   "designSystem": {
     "name": "REPLACE — the library's name as designers say it",
-    "roots": ["src/design-system"],
-    "ignoreDirs": ["icons"],
+    "roots": [
+      "src/design-system"
+    ],
+    "ignoreDirs": [
+      "icons"
+    ],
     "componentExtension": ".tsx",
     "mappingSuffix": ".figma.ts",
     "draftSuffix": ".figma.tsx"
@@ -11,7 +15,8 @@
   "figma": {
     "fileKey": "REPLACE",
     "fileName": "REPLACE — the file name as it reads in Figma",
-    "retiredPagePattern": "graveyard|deprecated|archive"
+    "retiredPagePattern": "graveyard|deprecated|archive",
+    "designOnly": "report"
   },
   "codeConnect": {
     "parser": "react",
@@ -22,12 +27,25 @@
     "componentCache": "design/figma/components.json",
     "componentCacheMeta": "design/figma/components.meta.json",
     "tokenMap": "design/figma/tokens.md",
-    "libraryNotes": "design/figma/library-notes.md"
+    "libraryNotes": "design/figma/library-notes.md",
+    "designOnly": "design/figma/design-only-components.json"
   },
-  "verify": ["npm run type-check", "npm run lint", "npm run test:unit"],
+  "tokens": {
+    "allowLiteralsIn": [
+      "REPLACE — the file(s) that define the palette, e.g. src/design-system/colors.ts"
+    ]
+  },
+  "verify": [
+    "npm run type-check",
+    "npm run lint",
+    "npm run test:unit"
+  ],
   "fonts": {
     "families": [],
     "source": null,
-    "substitute": { "family": "Inter", "style": "SemiBold" }
+    "substitute": {
+      "family": "Inter",
+      "style": "SemiBold"
+    }
   }
 }
