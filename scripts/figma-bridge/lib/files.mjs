@@ -216,4 +216,103 @@ export function retiredComponents(config, cache = readComponentCache(config)) {
   return retired;
 }
 
+const designOnlySchema = object({
+  components: withDefault(
+    arrayOf(
+      object({
+        nodeId: required(str()),
+        name: required(str()),
+        reason: optional(str()),
+      }),
+    ),
+    [],
+  ),
+});
+
+/**
+ * Published components accepted as having no code counterpart. This is a
+ * baseline rather than a list of decisions: a library holds more than any one
+ * codebase uses, so the point is that the accepted set cannot grow by accident.
+ */
+export function readDesignOnlyBaseline(config) {
+  const path = config.paths.designOnly;
+  if (!path) return null;
+  const parsed = readJson(path, designOnlySchema, 'The design-only baseline', { optional: true });
+  return parsed ? parsed.components : null;
+}
+
+/**
+ * Figma's convention for a component the library does not publish: a leading dot
+ * (and, by local habit in some libraries, an underscore). Mapping one would link
+ * code against something consumers cannot instantiate.
+ */
+export function isPrivateComponentName(name) {
+  return /^[._]/.test(name.trim());
+}
+
+/** Node ids every mapping in the repo targets. */
+export function mappedNodeIds(config) {
+  const ids = new Set();
+  for (const path of mappingFiles(config)) {
+    for (const nodeId of nodeIdsIn(readFileSync(path, 'utf8'))) ids.add(nodeId);
+  }
+  return ids;
+}
+
+/**
+ * A path matcher small enough to vendor: `*` stops at a slash, `**` does not.
+ * Anything without a wildcard matches as a literal path or a directory prefix,
+ * which is what people write in a config by hand.
+ */
+export function matchesAnyPattern(path, patterns) {
+  return patterns.some((pattern) => {
+    if (!pattern.includes('*')) {
+      return path === pattern || path.startsWith(pattern.endsWith('/') ? pattern : `${pattern}/`);
+    }
+    const source = pattern
+      .split('**')
+      .map((part) =>
+        part
+          .split('*')
+          .map((literal) => literal.replace(/[.+^${}()|[\]\\]/g, '\\$&'))
+          .join('[^/]*'),
+      )
+      .join('.*');
+    return new RegExp(`^${source}$`).test(path);
+  });
+}
+
+/** Components on a page the repo has declared out of scope for mapping. */
+export function ignoredPageComponents(config, cache = readComponentCache(config)) {
+  const source = config.figma.ignorePagePattern;
+  if (!source) return new Map();
+  const pattern = new RegExp(source, 'i');
+  const ignored = new Map();
+  for (const component of cache) {
+    if (component.pageName && pattern.test(component.pageName)) {
+      ignored.set(component.nodeId, `${component.name} (${component.pageName.trim()})`);
+    }
+  }
+  return ignored;
+}
+
+/**
+ * The components a mapping could reasonably point at: everything published,
+ * minus retired pages, minus pages declared out of scope, minus Figma's private
+ * components. This is the denominator of any coverage number, so it lives here
+ * rather than in each caller — a report and a doctor disagreeing about what
+ * counts is worse than either being wrong.
+ */
+export function liveComponents(config, cache = readComponentCache(config)) {
+  const retired = retiredComponents(config, cache);
+  const ignored = ignoredPageComponents(config, cache);
+  const live = cache.filter(
+    (component) =>
+      !retired.has(component.nodeId) &&
+      !ignored.has(component.nodeId) &&
+      !isPrivateComponentName(component.name),
+  );
+  return { live, excluded: { retired: retired.size, ignoredPages: ignored.size } };
+}
+
 export const rel = (path) => relative(process.cwd(), path).split(sep).join('/');

@@ -8,8 +8,9 @@
 
 <p align="center">
   A Claude Code plugin for the two-way Figma ↔ code workflow.<br>
-  Code Connect mappings are the substrate both directions read, so an agent handed a design<br>
-  reaches for the component that is already there instead of writing a parallel one.
+  Code Connect mappings are the substrate both directions read, and the correspondence is a<br>
+  build invariant rather than a hint — no component in code without a design behind it, no<br>
+  published component quietly reimplemented, no value written down instead of bound.
 </p>
 
 <p align="center">
@@ -22,6 +23,7 @@
 
 <p align="center">
   <a href="#see-it">See it</a> ·
+  <a href="#what-you-need-first">Requirements</a> ·
   <a href="#install">Install</a> ·
   <a href="#what-it-actually-does">What it does</a> ·
   <a href="#skills">Skills</a> ·
@@ -85,6 +87,48 @@ declaration to silence this check — an unmapped component is a design decision
 
 That is a `PostToolUse` hook, not a suggestion in a prompt. An instruction is a request; a hook is
 enforcement.
+
+The same pair of checks runs the other way — a component the library publishes that the codebase
+never picked up is reported too, and a colour written down instead of bound to a token fails. The
+correspondence is checked in both directions, which is what makes it a correspondence rather than a
+convention.
+
+## What you need first
+
+Code Connect is the substrate this whole thing rests on, and Figma gates it by plan. Check this
+before anything else — the CLI fails in a way that reads like a bad token when the plan is the
+problem.
+
+| You need | Requirement |
+| --- | --- |
+| **Code Connect** — publishing mappings, and the snippets Dev Mode shows | a **Dev or Full seat on an Organization or Enterprise plan** ([docs](https://developers.figma.com/docs/code-connect/)) |
+| **Figma MCP, remote** — reading designs, and writing them from an agent | available on all seats and plans; agent-driven design creation runs through the remote server, free during its beta and later usage-based ([docs](https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server)) |
+| **Figma MCP, desktop** | a Dev or Full seat on any paid plan |
+| **A personal access token** for the Code Connect CLI | two scopes, `file_content:read` and `file_code_connect:write`, in `.env.local` |
+| **Node** | 22 or newer, for the vendored checks |
+
+Two consequences worth knowing before you plan around them:
+
+- **The Variables REST API is Enterprise-only** — *"available to full members of Enterprise orgs"*
+  ([docs](https://developers.figma.com/docs/rest-api/variables-endpoints/)). This plugin therefore
+  reads and writes variables through the **Plugin API** via the MCP server, which carries no such
+  restriction. Nothing here needs the REST variables endpoints.
+- **MCP access is per-user OAuth, and there is no service credential.** So every step that writes to
+  Figma runs in an interactive session and never in CI. The checks are the opposite: local,
+  hermetic, no API calls, no plan.
+
+<details>
+<summary><strong>Below Organization plan</strong> — what still works, and what doesn't</summary>
+
+Without a Code Connect seat you cannot **publish** mappings, so Dev Mode shows no snippet and the
+agent cannot resolve a frame's components with `get_code_connect_map`. That is the part of the
+workflow the plan buys.
+
+What still works, because it never touches the API: the mapping files themselves, all five audits,
+the write guard, the hooks, the doctor, and CI. A repo can keep a correct, enforced
+design↔code correspondence on any plan — it just doesn't get the Dev Mode half of it.
+
+</details>
 
 ## Install
 
@@ -177,7 +221,7 @@ All three no-op in a repo without a `figma-bridge.json`, so the plugin is safe t
 | Hook | Fires | Does |
 | --- | --- | --- |
 | target guard | `PreToolUse` on the Figma write tools | denies a write to any file but the configured target; fails closed |
-| coverage guard | `PostToolUse` on `Write`/`Edit` under the design system roots | reports an invented component at the moment of the write |
+| coverage guard | `PostToolUse` on `Write`/`Edit` under the design system roots | reports an invented component, or a colour written down instead of bound, at the moment of the write |
 | snippet guard | `PostToolUse` on `Write`/`Edit` of a mapping | reports a snippet that renders an identifier it does not import |
 
 ## The checks
@@ -188,12 +232,14 @@ the checks depend on nothing but Node itself, and keep working in a repo whose C
 `--omit=dev`.
 
 ```
-figma-bridge check              retarget --check, then both audits
-figma-bridge retarget --check   verify every reference names the target file
-figma-bridge retarget <key> [n] point the whole repo at another file
-figma-bridge audit-coverage     every component mapped, or declared with a reason
-figma-bridge audit-snippets     every snippet imports what it renders
-figma-bridge doctor             is this repo wired up?
+figma-bridge check                  retarget --check, then every audit
+figma-bridge retarget --check       verify every reference names the target file
+figma-bridge retarget <key> [name]  point the whole repo at another file
+figma-bridge audit-coverage         no component in code without a design behind it
+figma-bridge audit-design-orphans   no published component without code, or baselined
+figma-bridge audit-hardcoded-values no colour written down instead of bound to a token
+figma-bridge audit-snippets         every snippet imports what it renders
+figma-bridge doctor                 is this repo wired up?
 figma-bridge guard --pre-write | --post-write
 ```
 
@@ -205,6 +251,26 @@ declared reason (the anti-invention guard), a declaration left behind after its 
 and any mapping pointing at a component on a retired page. That last one matters more than it
 sounds: a retired page holds what used to be everywhere, so it accumulates the highest instance
 counts in a mature library — rank candidates by popularity and you get dead components first.
+
+**`audit-design-orphans`** — the same question asked backwards: published components no mapping
+points at. Coverage alone is half a guarantee, because it says nothing about a component the library
+publishes that the codebase has quietly reimplemented or never noticed. Excluded from the count:
+retired pages, Figma's private (`.`-prefixed) components, and any page named by
+`figma.ignorePagePattern` — an icon set the codebase holds as SVGs, a cover page, documentation.
+Name those, or two thirds of the list is noise and nobody reads it. It **reports** by default and passes, because a
+library holds more than any one codebase uses and a check that fails on that gets switched off. Set
+`figma.designOnly` to `"baseline"` and it becomes a ratchet: whatever is unmapped today is accepted
+once, in writing, and anything new must be mapped or accepted deliberately.
+
+**`audit-hardcoded-values`** — a colour written down instead of bound to a token. Until this existed
+the token map was a document rather than a gate, which made the weakest link in the correspondence
+the easiest one to cross: a hardcoded colour is a value no Figma variable governs, so changing the
+token leaves it behind. Colours only, deliberately — a raw number in a layout is ambiguous, and a
+check that cries wolf takes the useful half down with it. The file that defines the palette goes in
+`tokens.allowLiteralsIn`; the doctor fails if one of those patterns stops matching anything, since a
+stale exception is a hole nobody is looking at. Comments are not values — a colour quoted from a
+design inside a `{/* … */}` block is documentation, and block state is tracked across lines so the
+continuation lines are not flagged either.
 
 **`audit-snippets`** — every identifier a published snippet renders must be imported, and no import
 may be relative, because a snippet is pasted somewhere else. This is the fault `figma connect
@@ -220,11 +286,12 @@ rewrite publishes a mixture, or sends a developer to the wrong library.
 ## Developing
 
 ```bash
-./tests/run.sh              # 19 cases against a throwaway fixture repo
+./tests/run.sh              # 38 cases against a throwaway fixture repo
 claude plugin validate .    # both manifests
 ```
 
-Every case asserts both directions: the clean fixture passes, and an invented component, a stale
+Every case asserts both directions: the clean fixture passes, and an invented component, an unmapped
+published component, a hardcoded colour, a broken ratchet, a stale baseline entry, a stale
 declaration, a mapping onto a retired page, a snippet missing an import, a relative import, a
 doc-link naming another file, a cache from another file and a malformed config each fail with the
 message that explains them. Both guards are tested for firing *and* for staying silent in a repo
@@ -251,7 +318,7 @@ from the code owner in `.github/CODEOWNERS` and all five checks green:
 
 | Check | Green means |
 | --- | --- |
-| `tests on Node 22` | every script parses, and the fixture suite's 19 cases pass on the oldest Node still in support |
+| `tests on Node 22` | every script parses, and the fixture suite's 38 cases pass on the oldest Node still in support |
 | `tests on Node 24` | the same on current Node |
 | `manifests agree` | `plugin.json` and the marketplace entry describe the same plugin at a valid version |
 | `plugin version bump` | either nothing users receive changed, or the version moved |

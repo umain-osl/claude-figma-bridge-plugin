@@ -8,7 +8,15 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { CONFIG_NAME } from '../lib/config.mjs';
-import { componentFiles, mappingFiles, readCacheMeta, readComponentCache } from '../lib/files.mjs';
+import {
+  componentFiles,
+  liveComponents,
+  mappedNodeIds,
+  mappingFiles,
+  matchesAnyPattern,
+  readCacheMeta,
+  readComponentCache,
+} from '../lib/files.mjs';
 
 const ok = (message) => console.info(`  ok    ${message}`);
 const warn = (message) => console.warn(`  warn  ${message}`);
@@ -75,6 +83,45 @@ export default function main(config) {
           '        components there often carry the highest instance counts in the file.',
       );
     }
+  }
+
+  console.info('\nBoth directions of the correspondence');
+  if (cache.length === 0) {
+    warn('no cache, so the design side cannot be counted');
+  } else {
+    const { live, excluded } = liveComponents(config, cache);
+    const mapped = mappedNodeIds(config);
+    const orphans = live.filter((component) => !mapped.has(component.nodeId));
+    const percent = live.length === 0 ? 100 : Math.round(((live.length - orphans.length) / live.length) * 100);
+    ok(
+      `${live.length - orphans.length} of ${live.length} live component(s) mapped (${percent}%)` +
+        (excluded.ignoredPages > 0 ? `, ${excluded.ignoredPages} excluded by page` : ''),
+    );
+    if (orphans.length > 0) {
+      warn(
+        `${orphans.length} published component(s) have no code counterpart. \`audit-design-orphans\`\n` +
+          '        lists them — read it before anyone builds a component.',
+      );
+    }
+    if (config.figma.designOnly !== 'baseline') {
+      warn(
+        'figma.designOnly is "report", so that number can grow unnoticed. Set it to "baseline"\n' +
+          '        to freeze the accepted set.',
+      );
+    }
+  }
+
+  const allowed = config.tokens?.allowLiteralsIn ?? [];
+  if (allowed.length > 0) {
+    const sources = componentFiles(config);
+    const dead = allowed.filter((pattern) => !sources.some((path) => matchesAnyPattern(path, pattern ? [pattern] : [])));
+    if (dead.length === 0) ok(`${allowed.length} path pattern(s) may hold raw colour literals`);
+    else
+      fail(
+        `tokens.allowLiteralsIn names ${dead.length} pattern(s) matching no component source:\n` +
+          dead.map((pattern) => `        ${pattern}`).join('\n') +
+          '\n        A stale exception is a hole nobody is looking at.',
+      );
   }
 
   console.info('\nCredentials');
