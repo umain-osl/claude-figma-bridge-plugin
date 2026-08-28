@@ -40,7 +40,7 @@ something with that name.
 
 ## 2. Take inventory before writing
 
-Search all five sources. Do not skip one because another looked empty.
+Search all six sources. Do not skip one because another looked empty.
 
 1. **Code Connect mappings** — the mapping files under the design system roots. Each has a
    `// url=` directive naming its Figma node and a `// component=` naming the code component.
@@ -53,7 +53,11 @@ Search all five sources. Do not skip one because another looked empty.
 4. **The library notes** (`paths.libraryNotes`) — the repo's written record of names that
    mislead, terms with more than one referent, and which pages are retired. Read this before
    trusting any component name.
-5. **Existing Figma screens** — the page holding real screens assembled from the library. If a
+5. **The design-only list** — run `figma-bridge audit-design-orphans`. It reports every published
+   component that no mapping points at, grouped by page. When a slot has no obvious match, this is
+   the list that answers whether the design system already publishes something for it. A component
+   in there is a candidate to map, not a licence to build.
+6. **Existing Figma screens** — the page holding real screens assembled from the library. If a
    pattern exists on one, prefer it over authoring your own.
 
 ### Ignore retired pages, and do not rank by popularity
@@ -119,10 +123,16 @@ duplication" is.
 
 ## 5. Enforcement
 
-`figma-bridge audit-coverage` **fails** when a component under the design system roots has
-neither a mapping beside it nor an entry in `paths.unmapped` with a written reason. The plugin
-also runs it as a `PostToolUse` hook, so an invented component is reported at the moment the file
-is written rather than at some later gate.
+`figma-bridge audit-coverage` **fails** when a component under the design system roots has neither a
+mapping beside it nor an entry in `paths.unmapped` with a written reason. The plugin also runs it as
+a `PostToolUse` hook, so an invented component is reported at the moment the file is written rather
+than at some later gate.
+
+Two more checks close the same loop from the other side. `audit-design-orphans` reports published
+components with no code counterpart — and fails on a new one where the repo has set
+`figma.designOnly` to `baseline`. `audit-hardcoded-values` fails on a colour written down instead of
+taken from the token map, which is the other way a component escapes the design system's authority
+while looking correct.
 
 **Do not add a declaration to silence the check.** A component with no Figma counterpart is a
 design decision that belongs to the design owner. Ask.
